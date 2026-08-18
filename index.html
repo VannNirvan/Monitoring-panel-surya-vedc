@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Monitor Daya Listrik — ESP32</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #12161A;
+    --panel: #1B2027;
+    --panel-line: #2A313A;
+    --text: #E9EDF1;
+    --muted: #8B96A3;
+    --amber: #F2B705;
+    --green: #35D68A;
+    --red: #FF5C5C;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); min-height:100vh;
+  }
+  body{
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(242,183,5,0.06), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(53,214,138,0.05), transparent 45%);
+  }
+
+  header{
+    padding: 28px 32px 18px;
+    border-bottom: 1px solid var(--panel-line);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  }
+  .brand{ display:flex; align-items:center; gap:14px; }
+  .brand .mark{
+    width:38px; height:38px; border-radius:8px;
+    background: linear-gradient(135deg, var(--amber), #c98d02);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--mono); font-weight:800; color:#14161a; font-size:16px;
+  }
+  .brand h1{ margin:0; font-size:17px; font-weight:600; letter-spacing:0.2px; }
+  .brand p{ margin:2px 0 0; font-size:12.5px; color: var(--muted); font-family: var(--mono); }
+
+  .status{
+    display:flex; align-items:center; gap:8px;
+    font-family: var(--mono); font-size:12.5px; color: var(--muted);
+    padding: 7px 14px; border:1px solid var(--panel-line); border-radius: 999px;
+    background: rgba(255,255,255,0.02);
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; background: var(--muted); transition: all .3s; }
+  .dot.online{ background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot.offline{ background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  main{ max-width: 1080px; margin: 0 auto; padding: 32px; }
+
+  .grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; margin-bottom: 20px;
+  }
+  @media (max-width: 760px){ .grid{ grid-template-columns: 1fr; } }
+
+  .card{
+    background: var(--panel); border:1px solid var(--panel-line); border-radius:14px;
+    padding: 22px 22px 20px; position:relative; overflow:hidden;
+  }
+  .card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:2px;
+    background: var(--accent, var(--amber));
+  }
+  .card .label{
+    font-family: var(--mono); font-size:11.5px; letter-spacing: 1.5px; text-transform:uppercase;
+    color: var(--muted); margin:0 0 10px;
+  }
+  .card .value{
+    font-family: var(--mono); font-weight:700; font-size: 40px; line-height:1;
+    color: var(--accent, var(--amber));
+    display:flex; align-items:baseline; gap:6px;
+  }
+  .card .value .unit{ font-size:16px; font-weight:500; color: var(--muted); }
+  .card .sub{ margin-top:10px; font-size:12.5px; color:var(--muted); }
+
+  #card-volt{ --accent: var(--amber); }
+  #card-arus{ --accent: #6FB7FF; }
+  #card-daya{ --accent: var(--green); }
+
+  .panel-lower{
+    display:grid; grid-template-columns: 1.4fr 1fr; gap:18px;
+  }
+  @media (max-width: 760px){ .panel-lower{ grid-template-columns: 1fr; } }
+
+  .chart-card{
+    background: var(--panel); border:1px solid var(--panel-line); border-radius:14px; padding:20px;
+  }
+  .chart-card h3{
+    margin:0 0 14px; font-size:13px; font-family: var(--mono); letter-spacing:1px;
+    text-transform:uppercase; color: var(--muted); font-weight:500;
+  }
+  canvas{ width:100% !important; height: 200px !important; }
+
+  .gauge-card{
+    background: var(--panel); border:1px solid var(--panel-line); border-radius:14px;
+    padding:20px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .gauge-card h3{
+    margin:0 0 6px; font-size:13px; font-family: var(--mono); letter-spacing:1px;
+    text-transform:uppercase; color: var(--muted); font-weight:500; align-self:flex-start;
+  }
+  .gauge-wrap{ position:relative; width:180px; height:100px; margin-top:6px; }
+  .gauge-readout{
+    position:absolute; bottom:-4px; left:0; right:0; text-align:center;
+    font-family: var(--mono); font-weight:700; font-size:22px; color: var(--text);
+  }
+  .gauge-readout span{ font-size:12px; color:var(--muted); font-weight:400; display:block; margin-top:2px;}
+
+  footer{
+    text-align:center; padding: 20px; font-family: var(--mono); font-size:11.5px; color: var(--muted);
+  }
+  footer span{ color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark">⚡</div>
+    <div>
+      <h1>Monitor Daya Listrik</h1>
+      <p>devices/esp32_01 · realtime database</p>
+    </div>
+  </div>
+  <div class="status" id="statusPill">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Menghubungkan...</span>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="card" id="card-volt">
+      <p class="label">Tegangan</p>
+      <div class="value"><span id="valVolt">--</span><span class="unit">V</span></div>
+      <p class="sub" id="subVolt">Menunggu data</p>
+    </div>
+    <div class="card" id="card-arus">
+      <p class="label">Arus</p>
+      <div class="value"><span id="valArus">--</span><span class="unit">A</span></div>
+      <p class="sub" id="subArus">Menunggu data</p>
+    </div>
+    <div class="card" id="card-daya">
+      <p class="label">Daya</p>
+      <div class="value"><span id="valDaya">--</span><span class="unit">W</span></div>
+      <p class="sub" id="subDaya">Menunggu data</p>
+    </div>
+  </div>
+
+  <div class="panel-lower">
+    <div class="chart-card">
+      <h3>Riwayat Daya (W)</h3>
+      <canvas id="powerChart"></canvas>
+    </div>
+    <div class="gauge-card">
+      <h3>Beban Saat Ini</h3>
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 180 100" width="180" height="100">
+          <path d="M 15 95 A 75 75 0 0 1 165 95" fill="none" stroke="#2A313A" stroke-width="14" stroke-linecap="round"/>
+          <path id="gaugeArc" d="M 15 95 A 75 75 0 0 1 165 95" fill="none" stroke="#35D68A" stroke-width="14" stroke-linecap="round"
+                stroke-dasharray="235.6" stroke-dashoffset="235.6"/>
+        </svg>
+        <div class="gauge-readout"><span id="gaugePct">0%</span><span>dari 5000 W</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Terakhir diperbarui: <span id="lastUpdate">—</span></footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  // ============================================================
+  // GANTI BAGIAN INI SESUAI PROJECT FIREBASE KAMU
+  // Ambil dari: Firebase Console > Project Settings > General > Your apps
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyBjU9LbSD6Auw5mxxpF3Xv2SSgW_nhA0oM",
+    authDomain: "iot-daya-monitoring.firebaseapp.com",
+    databaseURL: "https://iot-daya-monitoring-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "iot-daya-monitoring",
+  };
+
+  // Kalau rules-mu masih "auth != null", web ini perlu login juga.
+  // Kalau read sudah kamu buka publik (.read: true) untuk path ini,
+  // biarkan dua baris di bawah ini kosong ("").
+  const LOGIN_EMAIL = "";
+  const LOGIN_PASSWORD = "";
+  // ============================================================
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app);
+
+  const statusDot = document.getElementById("statusDot");
+  const statusText = document.getElementById("statusText");
+  const lastUpdateEl = document.getElementById("lastUpdate");
+
+  function setStatus(online){
+    statusDot.classList.toggle("online", online);
+    statusDot.classList.toggle("offline", !online);
+    statusText.textContent = online ? "Terhubung" : "Terputus";
+  }
+
+  // ---------- grafik riwayat daya ----------
+  const ctx = document.getElementById("powerChart").getContext("2d");
+  const history = { labels: [], data: [] };
+  const MAX_POINTS = 30;
+
+  function drawChart(){
+    const w = ctx.canvas.width = ctx.canvas.clientWidth * 2;
+    const h = ctx.canvas.height = ctx.canvas.clientHeight * 2;
+    ctx.clearRect(0,0,w,h);
+    if(history.data.length < 2) return;
+
+    const max = Math.max(...history.data, 1) * 1.15;
+    const min = Math.min(...history.data) * 0.9;
+    const stepX = w / (MAX_POINTS - 1);
+
+    ctx.beginPath();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#35D68A";
+    ctx.lineJoin = "round";
+    history.data.forEach((val, i) => {
+      const x = i * stepX;
+      const y = h - ((val - min) / (max - min || 1)) * (h - 20) - 10;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // area fill
+    ctx.lineTo((history.data.length - 1) * stepX, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0, "rgba(53,214,138,0.25)");
+    grad.addColorStop(1, "rgba(53,214,138,0)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  // ---------- gauge ----------
+  const gaugeArc = document.getElementById("gaugeArc");
+  const gaugePct = document.getElementById("gaugePct");
+  const ARC_LENGTH = 235.6;
+  const GAUGE_MAX = 5000; // watt, sesuaikan kapasitas beban kamu
+
+  function updateGauge(daya){
+    const pct = Math.min(daya / GAUGE_MAX, 1);
+    gaugeArc.setAttribute("stroke-dashoffset", ARC_LENGTH * (1 - pct));
+    gaugeArc.style.stroke = pct > 0.85 ? "#FF5C5C" : pct > 0.6 ? "#F2B705" : "#35D68A";
+    gaugePct.textContent = Math.round(pct * 100) + "%";
+  }
+
+  // ---------- render data dari Firebase ----------
+  function renderData(data){
+    if(!data) return;
+    document.getElementById("valVolt").textContent = Number(data.tegangan).toFixed(1);
+    document.getElementById("valArus").textContent = Number(data.arus).toFixed(2);
+    document.getElementById("valDaya").textContent = Number(data.daya).toFixed(1);
+
+    document.getElementById("subVolt").textContent = "Nominal 220V";
+    document.getElementById("subArus").textContent = "Beban aktif";
+    document.getElementById("subDaya").textContent = "Real-time";
+
+    history.data.push(Number(data.daya));
+    if(history.data.length > MAX_POINTS) history.data.shift();
+    drawChart();
+    updateGauge(Number(data.daya));
+
+    lastUpdateEl.textContent = new Date().toLocaleTimeString("id-ID");
+    setStatus(true);
+  }
+
+  function listenToDevice(){
+    const dataRef = ref(db, "/devices/esp32_01");
+    onValue(dataRef, (snapshot) => {
+      renderData(snapshot.val());
+    }, (error) => {
+      console.error("Gagal membaca database:", error);
+      setStatus(false);
+      statusText.textContent = "Error: " + error.code;
+    });
+  }
+
+  // Kalau rules butuh login, sign in dulu. Kalau read sudah publik, langsung listen.
+  if (LOGIN_EMAIL) {
+    signInWithEmailAndPassword(auth, LOGIN_EMAIL, LOGIN_PASSWORD)
+      .then(() => listenToDevice())
+      .catch((error) => {
+        console.error("Login gagal:", error);
+        statusText.textContent = "Login gagal";
+      });
+  } else {
+    listenToDevice();
+  }
+
+  window.addEventListener("resize", drawChart);
+</script>
+
+</body>
+</html>
