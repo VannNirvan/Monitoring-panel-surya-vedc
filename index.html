@@ -1,315 +1,1391 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Monitor Daya Listrik — ESP32</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg: #12161A;
-    --panel: #1B2027;
-    --panel-line: #2A313A;
-    --text: #E9EDF1;
-    --muted: #8B96A3;
-    --amber: #F2B705;
-    --green: #35D68A;
-    --red: #FF5C5C;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'IBM Plex Sans', sans-serif;
-  }
-  *{ box-sizing: border-box; }
-  html,body{
-    margin:0; padding:0; background: var(--bg); color: var(--text);
-    font-family: var(--sans); min-height:100vh;
-  }
-  body{
-    background-image:
-      radial-gradient(circle at 15% 0%, rgba(242,183,5,0.06), transparent 40%),
-      radial-gradient(circle at 85% 100%, rgba(53,214,138,0.05), transparent 45%);
-  }
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Monitoring Panel Surya - VEDC</title>
+    <meta name="description" content="Real-time IoT solar panel energy monitoring system with live telemetry, powered by ESP32 and Firebase."/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        /* ===== DESIGN TOKENS ===== */
+        :root {
+            /* Light Theme (Default) — Soft, warm, easy on the eyes */
+            --color-background: #f5f2ee;
+            --color-surface: #ffffff;
+            --color-surface-dim: #ebe8e4;
+            --color-surface-container-lowest: #ffffff;
+            --color-surface-container-low: #f9f6f2;
+            --color-surface-container: #f0ede8;
+            --color-surface-container-high: #e8e4df;
+            --color-surface-container-highest: #dfdbd6;
+            --color-on-surface: #1c1b18;
+            --color-on-surface-variant: #5c5a55;
+            --color-outline: #9e9b96;
+            --color-outline-variant: #d4d1cc;
+            --color-primary: #b37a00;
+            --color-primary-soft: #d4960a;
+            --color-primary-container: #fff0d4;
+            --color-on-primary: #ffffff;
+            --color-on-primary-container: #3d2800;
+            --color-secondary: #e87400;
+            --color-secondary-container: #ffead4;
+            --color-tertiary: #0d9b6a;
+            --color-tertiary-soft: #12b07a;
+            --color-tertiary-container: #d4f5e8;
+            --color-on-tertiary: #ffffff;
+            --color-error: #d93025;
+            --color-error-container: #fde7e4;
 
-  header{
-    padding: 28px 32px 18px;
-    border-bottom: 1px solid var(--panel-line);
-    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
-  }
-  .brand{ display:flex; align-items:center; gap:14px; }
-  .brand .mark{
-    width:38px; height:38px; border-radius:8px;
-    background: linear-gradient(135deg, var(--amber), #c98d02);
-    display:flex; align-items:center; justify-content:center;
-    font-family: var(--mono); font-weight:800; color:#14161a; font-size:16px;
-  }
-  .brand h1{ margin:0; font-size:17px; font-weight:600; letter-spacing:0.2px; }
-  .brand p{ margin:2px 0 0; font-size:12.5px; color: var(--muted); font-family: var(--mono); }
+            /* Glass */
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(0, 0, 0, 0.06);
+            --glass-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+            --glass-shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06);
+            --glow-primary: 0 0 0 1px rgba(179, 122, 0, 0.15), 0 4px 20px rgba(179, 122, 0, 0.1);
 
-  .status{
-    display:flex; align-items:center; gap:8px;
-    font-family: var(--mono); font-size:12.5px; color: var(--muted);
-    padding: 7px 14px; border:1px solid var(--panel-line); border-radius: 999px;
-    background: rgba(255,255,255,0.02);
-  }
-  .dot{ width:8px; height:8px; border-radius:50%; background: var(--muted); transition: all .3s; }
-  .dot.online{ background: var(--green); box-shadow: 0 0 8px var(--green); }
-  .dot.offline{ background: var(--red); box-shadow: 0 0 8px var(--red); }
+            /* 3D Viewer */
+            --viewer-bg: #e8e4df;
+            --viewer-scene-bg: 0xf0ede8;
 
-  main{ max-width: 1080px; margin: 0 auto; padding: 32px; }
+            /* Chart */
+            --chart-bg: rgba(0, 0, 0, 0.02);
+            --chart-grid: rgba(0, 0, 0, 0.06);
+            --chart-fill-start: rgba(179, 122, 0, 0.3);
+            --chart-fill-end: rgba(179, 122, 0, 0);
 
-  .grid{
-    display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; margin-bottom: 20px;
-  }
-  @media (max-width: 760px){ .grid{ grid-template-columns: 1fr; } }
+            /* Spacing */
+            --spacing-xs: 8px;
+            --spacing-sm: 16px;
+            --spacing-md: 24px;
+            --spacing-lg: 40px;
+            --spacing-xl: 64px;
+            --spacing-gutter: 20px;
+            --margin-mobile: 16px;
+            --margin-desktop: 48px;
 
-  .card{
-    background: var(--panel); border:1px solid var(--panel-line); border-radius:14px;
-    padding: 22px 22px 20px; position:relative; overflow:hidden;
-  }
-  .card::before{
-    content:""; position:absolute; top:0; left:0; right:0; height:2px;
-    background: var(--accent, var(--amber));
-  }
-  .card .label{
-    font-family: var(--mono); font-size:11.5px; letter-spacing: 1.5px; text-transform:uppercase;
-    color: var(--muted); margin:0 0 10px;
-  }
-  .card .value{
-    font-family: var(--mono); font-weight:700; font-size: 40px; line-height:1;
-    color: var(--accent, var(--amber));
-    display:flex; align-items:baseline; gap:6px;
-  }
-  .card .value .unit{ font-size:16px; font-weight:500; color: var(--muted); }
-  .card .sub{ margin-top:10px; font-size:12.5px; color:var(--muted); }
+            /* Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
 
-  #card-volt{ --accent: var(--amber); }
-  #card-arus{ --accent: #6FB7FF; }
-  #card-daya{ --accent: var(--green); }
+            /* Transition */
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-  .panel-lower{
-    display:grid; grid-template-columns: 1.4fr 1fr; gap:18px;
-  }
-  @media (max-width: 760px){ .panel-lower{ grid-template-columns: 1fr; } }
+        /* ===== DARK THEME ===== */
+        [data-theme="dark"] {
+            --color-background: #141210;
+            --color-surface: #1e1c18;
+            --color-surface-dim: #141210;
+            --color-surface-container-lowest: #0e0d0a;
+            --color-surface-container-low: #1a1816;
+            --color-surface-container: #221f1b;
+            --color-surface-container-high: #2c2924;
+            --color-surface-container-highest: #37342e;
+            --color-on-surface: #ece0d0;
+            --color-on-surface-variant: #b8ae9e;
+            --color-outline: #8a8078;
+            --color-outline-variant: #44403a;
+            --color-primary: #ffd080;
+            --color-primary-soft: #e8b84a;
+            --color-primary-container: #5c3e00;
+            --color-on-primary: #3d2800;
+            --color-on-primary-container: #ffe0a8;
+            --color-secondary: #ffb070;
+            --color-secondary-container: #6a3800;
+            --color-tertiary: #5aeaaa;
+            --color-tertiary-soft: #3dd094;
+            --color-tertiary-container: #004d32;
+            --color-on-tertiary: #003822;
+            --color-error: #ffb4a8;
+            --color-error-container: #930006;
 
-  .chart-card{
-    background: var(--panel); border:1px solid var(--panel-line); border-radius:14px; padding:20px;
-  }
-  .chart-card h3{
-    margin:0 0 14px; font-size:13px; font-family: var(--mono); letter-spacing:1px;
-    text-transform:uppercase; color: var(--muted); font-weight:500;
-  }
-  canvas{ width:100% !important; height: 200px !important; }
+            --glass-bg: rgba(30, 28, 24, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.07);
+            --glass-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.15);
+            --glass-shadow-hover: 0 2px 8px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.2);
+            --glow-primary: 0 0 0 1px rgba(255, 208, 128, 0.2), 0 4px 20px rgba(255, 208, 128, 0.12);
 
-  .gauge-card{
-    background: var(--panel); border:1px solid var(--panel-line); border-radius:14px;
-    padding:20px; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  }
-  .gauge-card h3{
-    margin:0 0 6px; font-size:13px; font-family: var(--mono); letter-spacing:1px;
-    text-transform:uppercase; color: var(--muted); font-weight:500; align-self:flex-start;
-  }
-  .gauge-wrap{ position:relative; width:180px; height:100px; margin-top:6px; }
-  .gauge-readout{
-    position:absolute; bottom:-4px; left:0; right:0; text-align:center;
-    font-family: var(--mono); font-weight:700; font-size:22px; color: var(--text);
-  }
-  .gauge-readout span{ font-size:12px; color:var(--muted); font-weight:400; display:block; margin-top:2px;}
+            --viewer-bg: #1a1816;
+            --viewer-scene-bg: 0x1a1816;
 
-  footer{
-    text-align:center; padding: 20px; font-family: var(--mono); font-size:11.5px; color: var(--muted);
-  }
-  footer span{ color: var(--text); }
-</style>
+            --chart-bg: rgba(255, 255, 255, 0.02);
+            --chart-grid: rgba(255, 255, 255, 0.05);
+            --chart-fill-start: rgba(255, 208, 128, 0.35);
+            --chart-fill-end: rgba(255, 208, 128, 0);
+        }
+
+        /* ===== RESET ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--color-background);
+            color: var(--color-on-surface);
+            font-family: 'Hanken Grotesk', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background-color var(--transition), color var(--transition);
+        }
+
+        /* ===== TYPOGRAPHY ===== */
+        .t-display   { font-family: 'Sora', sans-serif; font-size: 36px; font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
+        .t-headline   { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 600; line-height: 1.25; }
+        .t-stats      { font-family: 'Sora', sans-serif; font-size: 38px; font-weight: 600; line-height: 1.0; letter-spacing: -0.01em; }
+        .t-body-lg    { font-family: 'Hanken Grotesk', sans-serif; font-size: 17px; font-weight: 400; line-height: 1.6; }
+        .t-body       { font-family: 'Hanken Grotesk', sans-serif; font-size: 15px; font-weight: 400; line-height: 1.5; }
+        .t-label      { font-family: 'Hanken Grotesk', sans-serif; font-size: 12px; font-weight: 600; line-height: 1.0; letter-spacing: 0.06em; text-transform: uppercase; }
+        .t-label-md   { font-family: 'Hanken Grotesk', sans-serif; font-size: 13px; font-weight: 600; line-height: 1.2; }
+
+        /* ===== CARD / PANEL ===== */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--glass-shadow);
+            transition: box-shadow var(--transition), transform var(--transition), background var(--transition), border-color var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: var(--glass-shadow-hover);
+        }
+
+        /* ===== ANIMATIONS ===== */
+        .marching-ants {
+            stroke-dasharray: 6 4;
+            animation: dash 1.2s linear infinite;
+        }
+
+        @keyframes dash { to { stroke-dashoffset: -10; } }
+
+        .pulse-dot { animation: pulse-anim 2.5s ease-in-out infinite; }
+
+        @keyframes pulse-anim {
+            0% { box-shadow: 0 0 0 0 rgba(13, 155, 106, 0.45); }
+            70% { box-shadow: 0 0 0 8px rgba(13, 155, 106, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(13, 155, 106, 0); }
+        }
+
+        [data-theme="dark"] .pulse-dot {
+            animation-name: pulse-anim-dark;
+        }
+
+        @keyframes pulse-anim-dark {
+            0% { box-shadow: 0 0 0 0 rgba(90, 234, 170, 0.45); }
+            70% { box-shadow: 0 0 0 8px rgba(90, 234, 170, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(90, 234, 170, 0); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .anim-in { animation: fadeUp 0.5s ease-out both; }
+        .anim-d1 { animation-delay: 0.1s; }
+        .anim-d2 { animation-delay: 0.2s; }
+        .anim-d3 { animation-delay: 0.3s; }
+        .anim-d4 { animation-delay: 0.4s; }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            transition: background var(--transition), border-color var(--transition);
+        }
+
+        .navbar-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 12px var(--margin-mobile);
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .navbar-brand img { height: 32px; width: auto; }
+
+        .navbar-brand-text {
+            font-family: 'Sora', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-primary);
+            transition: color var(--transition);
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: var(--color-surface-container);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-on-surface-variant);
+            transition: all var(--transition);
+            font-size: 20px;
+        }
+
+        .theme-toggle:hover {
+            background: var(--color-surface-container-high);
+            color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .live-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: var(--radius-full);
+            background: var(--color-tertiary-container);
+            transition: background var(--transition);
+        }
+
+        .live-chip .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--color-tertiary);
+        }
+
+        .live-chip span:last-child {
+            color: var(--color-tertiary);
+            font-weight: 600;
+            transition: color var(--transition);
+        }
+
+        [data-theme="dark"] .live-chip span:last-child {
+            color: var(--color-tertiary);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex-grow: 1;
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: var(--spacing-md) var(--margin-mobile);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-gutter);
+            padding-bottom: 80px;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header { margin-bottom: 4px; }
+
+        .page-header h1 { color: var(--color-on-surface); transition: color var(--transition); }
+
+        .page-header p {
+            color: var(--color-on-surface-variant);
+            margin-top: 4px;
+            transition: color var(--transition);
+        }
+
+        /* ===== HERO GRID ===== */
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-gutter);
+        }
+
+        .solar-viewer {
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            position: relative;
+            height: 340px;
+            background: var(--color-surface-container);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition);
+        }
+
+        .solar-illustration {
+            width: 320px;
+            height: 260px;
+            position: relative;
+            animation: float-panel 4s ease-in-out infinite;
+        }
+
+        @keyframes float-panel {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* SVG Solar Panel Styles */
+        .panel-body { fill: #1a2d55; }
+        .panel-cell { fill: #223a6e; stroke: #1a2d55; stroke-width: 0.5; }
+        .panel-frame { fill: #c0c0c0; }
+        .panel-frame-dark { fill: #a0a0a0; }
+        .panel-pole { fill: #909090; }
+        .panel-base { fill: #808080; }
+        .panel-shine { fill: rgba(255,255,255,0.12); }
+        .panel-shadow { fill: rgba(0,0,0,0.08); }
+
+        [data-theme="dark"] .panel-body { fill: #0f1d3a; }
+        [data-theme="dark"] .panel-cell { fill: #1a2d5a; stroke: #0f1d3a; }
+        [data-theme="dark"] .panel-shine { fill: rgba(255,255,255,0.08); }
+        [data-theme="dark"] .panel-shadow { fill: rgba(0,0,0,0.25); }
+
+        /* Sun rays animation */
+        .sun-graphic { animation: sun-rotate 20s linear infinite; transform-origin: 280px 50px; }
+        @keyframes sun-rotate { to { transform: rotate(360deg); } }
+
+        .sun-ray { fill: var(--color-primary); opacity: 0.25; }
+        .sun-core { fill: #ffb300; }
+        [data-theme="dark"] .sun-core { fill: #ffd080; }
+
+        .viewer-badge {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            z-index: 10;
+        }
+
+        .viewer-label {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--color-on-surface-variant);
+            opacity: 0.7;
+            transition: color var(--transition);
+        }
+
+        /* System Summary */
+        .summary-card {
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .summary-card h2 {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-on-surface);
+            transition: color var(--transition);
+        }
+
+        .summary-rows { display: flex; flex-direction: column; gap: 0; }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--glass-border);
+            transition: border-color var(--transition);
+        }
+
+        .summary-row:last-child { border-bottom: none; }
+
+        .summary-row .label { color: var(--color-on-surface-variant); transition: color var(--transition); }
+
+        .summary-row .val {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot-online {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-tertiary);
+        }
+
+        .text-online { color: var(--color-tertiary); font-weight: 600; }
+        .text-muted  { color: var(--color-on-surface); font-weight: 600; transition: color var(--transition); }
+
+        .eff-value {
+            color: var(--color-primary);
+            display: block;
+            margin-top: 2px;
+            transition: color var(--transition);
+        }
+
+        .btn-diag {
+            margin-top: var(--spacing-md);
+            width: 100%;
+            padding: 11px 16px;
+            border: 1px solid var(--glass-border);
+            background: var(--color-surface-container);
+            color: var(--color-on-surface);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all var(--transition);
+        }
+
+        .btn-diag:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: var(--color-primary-container);
+        }
+
+        .btn-diag .material-symbols-outlined { transition: transform var(--transition); font-size: 18px; }
+        .btn-diag:hover .material-symbols-outlined { transform: rotate(180deg); }
+
+        /* ===== METRIC CARDS ===== */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-gutter);
+        }
+
+        .metric-card {
+            padding: var(--spacing-md);
+            transition: box-shadow var(--transition), transform var(--transition), background var(--transition), border-color var(--transition);
+        }
+
+        .metric-card:hover { transform: translateY(-3px); }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .metric-label { color: var(--color-on-surface-variant); transition: color var(--transition); }
+
+        .metric-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-primary-container);
+            color: var(--color-primary);
+            transition: all var(--transition);
+        }
+
+        .metric-icon .material-symbols-outlined { font-size: 20px; }
+
+        .metric-value {
+            color: var(--color-on-surface);
+            margin-bottom: 10px;
+            transition: color var(--transition);
+        }
+
+        .metric-value .unit {
+            font-family: 'Sora', sans-serif;
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--color-on-surface-variant);
+            margin-left: 2px;
+            transition: color var(--transition);
+        }
+
+        .metric-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Power card highlight */
+        .metric-card.power-card {
+            border-color: var(--color-primary);
+            box-shadow: var(--glow-primary);
+        }
+
+        .metric-card.power-card .metric-label { color: var(--color-primary); font-weight: 700; }
+        .metric-card.power-card .metric-icon { background: var(--color-primary); color: var(--color-on-primary); }
+        .metric-card.power-card .metric-value { color: var(--color-primary); }
+        .metric-card.power-card .metric-value .unit { color: var(--color-primary-soft); }
+        .metric-card.power-card .metric-status { color: var(--color-primary); }
+        .metric-card.power-card .metric-status .material-symbols-outlined { color: var(--color-primary); font-size: 16px; }
+
+        /* ===== ENERGY FLOW ===== */
+        .flow-section { padding: var(--spacing-md); }
+
+        .flow-section h3 {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-on-surface);
+            transition: color var(--transition);
+        }
+
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .flow-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .flow-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            background: var(--color-surface-container);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            transition: all var(--transition);
+        }
+
+        .flow-icon.sun-icon {
+            border-radius: 50%;
+            background: var(--color-primary-container);
+            border-color: rgba(179, 122, 0, 0.2);
+        }
+
+        .flow-icon.panel-icon .material-symbols-outlined { color: var(--color-primary); }
+        .flow-icon.energy-icon { border-color: rgba(13, 155, 106, 0.2); background: var(--color-tertiary-container); }
+        .flow-icon.energy-icon .material-symbols-outlined { color: var(--color-tertiary); }
+        .flow-icon.monitor-icon .material-symbols-outlined { color: var(--color-on-surface-variant); }
+
+        .flow-node-label { color: var(--color-on-surface-variant); transition: color var(--transition); }
+        .flow-node-label.hl { color: var(--color-primary); font-weight: 700; }
+
+        .flow-connector-v {
+            height: 28px;
+            width: 0;
+            border-left: 2px dashed var(--color-outline-variant);
+            transition: border-color var(--transition);
+        }
+
+        .flow-connector-v.gold { border-left-color: var(--color-primary-soft); }
+        .flow-connector-v.green { border-left-color: var(--color-tertiary-soft); }
+
+        .flow-connector-h { display: none; }
+
+        /* ===== TELEMETRY CHART ===== */
+        .chart-section {
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            min-height: 380px;
+        }
+
+        .chart-header {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .chart-header h3 { color: var(--color-on-surface); transition: color var(--transition); }
+
+        .chart-tabs {
+            display: flex;
+            background: var(--color-surface-container);
+            border-radius: var(--radius-sm);
+            padding: 3px;
+            border: 1px solid var(--glass-border);
+            transition: all var(--transition);
+        }
+
+        .chart-tab {
+            padding: 7px 16px;
+            border-radius: 6px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--color-on-surface-variant);
+            font-family: 'Hanken Grotesk', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            transition: all var(--transition);
+        }
+
+        .chart-tab:hover {
+            color: var(--color-on-surface);
+            background: var(--color-surface-container-high);
+        }
+
+        .chart-tab.active {
+            background: var(--color-primary);
+            color: var(--color-on-primary);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        .chart-area {
+            flex-grow: 1;
+            width: 100%;
+            position: relative;
+            background: var(--chart-bg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            min-height: 240px;
+            transition: all var(--transition);
+        }
+
+        .chart-grid {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px 0;
+            pointer-events: none;
+        }
+
+        .chart-grid-line {
+            width: 100%;
+            height: 1px;
+            background: var(--chart-grid);
+        }
+
+        .chart-gradient-fill {
+            width: 100%;
+            height: 65%;
+            position: relative;
+            opacity: 0.9;
+        }
+
+        .chart-gradient-fill svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-x-labels {
+            position: absolute;
+            bottom: 8px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 10px;
+            color: var(--color-on-surface-variant);
+            opacity: 0.6;
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px var(--margin-mobile);
+            z-index: 40;
+            transition: all var(--transition);
+        }
+
+        .footer-status {
+            color: var(--color-tertiary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-right {
+            color: var(--color-on-surface-variant);
+            font-size: 11px;
+            transition: color var(--transition);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (min-width: 768px) {
+            .t-display { font-size: 44px; }
+
+            .navbar-inner { padding: 12px var(--margin-desktop); }
+
+            .main-content {
+                padding: var(--spacing-lg) var(--margin-desktop);
+                padding-bottom: 80px;
+                gap: var(--spacing-md);
+            }
+
+            .hero-grid { grid-template-columns: 3fr 2fr; }
+
+            .viewer-3d { height: 440px; }
+
+            .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+
+            .flow-diagram {
+                flex-direction: row;
+                justify-content: center;
+                gap: 0;
+            }
+
+            .flow-connector-v { display: none; }
+
+            .flow-connector-h {
+                display: flex;
+                align-items: center;
+                flex-grow: 1;
+                max-width: 120px;
+                min-width: 40px;
+                height: 8px;
+                padding: 0 4px;
+            }
+
+            .flow-connector-h svg {
+                width: 100%;
+                height: 8px;
+            }
+
+            .chart-header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .footer { padding: 10px var(--margin-desktop); }
+        }
+
+        @media (min-width: 1024px) {
+            .t-display { font-size: 48px; }
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--color-outline); }
+    </style>
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <div class="mark">⚡</div>
-    <div>
-      <h1>Monitor Daya Listrik</h1>
-      <p>devices/esp32_01 · realtime database</p>
-    </div>
-  </div>
-  <div class="status" id="statusPill">
-    <div class="dot" id="statusDot"></div>
-    <span id="statusText">Menghubungkan...</span>
-  </div>
-</header>
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <div class="navbar-brand">
+                <img alt="SolarPulse Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9nyCfkftw8PWrHEfthgsoCNG_I3gvwkDTl7Xy1vcQBQaleiQ96oCf9wbLQYkBRXID8r8mNP1s6koi7Fro1lUbfPiDtLnRzAWZsREsiUYdkuvjDLE34TLmtiatndhdOwfOJxiPb3QFNKGPsCgqdwsouYWXF26m25G763HaotSxQJJMGUDGxMBplUKDMCS_FH9CT-IzLcU9DPyL89OgIoGEbD9O9TIbGZQLLaojuqNrVfBFQ38HttKY1w"/>
+                <span class="navbar-brand-text">Monitoring Panel Surya VEDC</span>
+            </div>
+            <div class="navbar-right">
+                <div class="live-chip t-label">
+                    <span class="dot pulse-dot"></span>
+                    <span>Live</span>
+                </div>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                    <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+                </button>
+            </div>
+        </div>
+    </nav>
 
-<main>
-  <div class="grid">
-    <div class="card" id="card-volt">
-      <p class="label">Tegangan</p>
-      <div class="value"><span id="valVolt">--</span><span class="unit">V</span></div>
-      <p class="sub" id="subVolt">Menunggu data</p>
-    </div>
-    <div class="card" id="card-arus">
-      <p class="label">Arus</p>
-      <div class="value"><span id="valArus">--</span><span class="unit">A</span></div>
-      <p class="sub" id="subArus">Menunggu data</p>
-    </div>
-    <div class="card" id="card-daya">
-      <p class="label">Daya</p>
-      <div class="value"><span id="valDaya">--</span><span class="unit">W</span></div>
-      <p class="sub" id="subDaya">Menunggu data</p>
-    </div>
-  </div>
+    <!-- ===== MAIN ===== -->
+    <main class="main-content">
 
-  <div class="panel-lower">
-    <div class="chart-card">
-      <h3>Riwayat Daya (W)</h3>
-      <canvas id="powerChart"></canvas>
-    </div>
-    <div class="gauge-card">
-      <h3>Beban Saat Ini</h3>
-      <div class="gauge-wrap">
-        <svg viewBox="0 0 180 100" width="180" height="100">
-          <path d="M 15 95 A 75 75 0 0 1 165 95" fill="none" stroke="#2A313A" stroke-width="14" stroke-linecap="round"/>
-          <path id="gaugeArc" d="M 15 95 A 75 75 0 0 1 165 95" fill="none" stroke="#35D68A" stroke-width="14" stroke-linecap="round"
-                stroke-dasharray="235.6" stroke-dashoffset="235.6"/>
-        </svg>
-        <div class="gauge-readout"><span id="gaugePct">0%</span><span>dari 5000 W</span></div>
-      </div>
-    </div>
-  </div>
-</main>
+        <!-- Header -->
+        <header class="page-header anim-in">
+            <h1 class="t-display">Solar Panel Monitoring</h1>
+            <p class="t-body-lg">Real-time telemetry &amp; system vitality — IoT powered.</p>
+        </header>
 
-<footer>Terakhir diperbarui: <span id="lastUpdate">—</span></footer>
+        <!-- Hero: 3D Viewer + Summary -->
+        <section class="hero-grid">
+            <div class="solar-viewer card anim-in anim-d1">
+                <!-- SVG Solar Panel Illustration -->
+                <svg class="solar-illustration" viewBox="0 0 320 260" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Ground shadow -->
+                    <ellipse class="panel-shadow" cx="160" cy="240" rx="110" ry="12"/>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+                    <!-- Sun (top right) -->
+                    <g class="sun-graphic">
+                        <circle class="sun-ray" cx="280" cy="50" r="28" opacity="0.1"/>
+                        <circle class="sun-ray" cx="280" cy="50" r="20" opacity="0.15"/>
+                        <!-- rays -->
+                        <line x1="280" y1="18" x2="280" y2="8" stroke="#ffb300" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+                        <line x1="280" y1="82" x2="280" y2="92" stroke="#ffb300" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+                        <line x1="248" y1="50" x2="238" y2="50" stroke="#ffb300" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+                        <line x1="312" y1="50" x2="322" y2="50" stroke="#ffb300" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+                        <line x1="257" y1="27" x2="250" y2="20" stroke="#ffb300" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+                        <line x1="303" y1="73" x2="310" y2="80" stroke="#ffb300" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+                        <line x1="303" y1="27" x2="310" y2="20" stroke="#ffb300" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+                        <line x1="257" y1="73" x2="250" y2="80" stroke="#ffb300" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+                    </g>
+                    <circle class="sun-core" cx="280" cy="50" r="14"/>
 
-  // ============================================================
-  // GANTI BAGIAN INI SESUAI PROJECT FIREBASE KAMU
-  // Ambil dari: Firebase Console > Project Settings > General > Your apps
-  // ============================================================
-  const firebaseConfig = {
-    apiKey: "AIzaSyBjU9LbSD6Auw5mxxpF3Xv2SSgW_nhA0oM",
-    authDomain: "iot-daya-monitoring.firebaseapp.com",
-    databaseURL: "https://iot-daya-monitoring-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "iot-daya-monitoring",
-  };
+                    <!-- Mounting pole -->
+                    <rect class="panel-pole" x="155" y="160" width="10" height="72" rx="2"/>
+                    <!-- Cross bracket -->
+                    <line x1="130" y1="158" x2="160" y2="200" stroke="#909090" stroke-width="4" stroke-linecap="round"/>
+                    <line x1="190" y1="158" x2="160" y2="200" stroke="#909090" stroke-width="4" stroke-linecap="round"/>
+                    <!-- Base plate -->
+                    <rect class="panel-base" x="130" y="228" width="60" height="6" rx="2"/>
 
-  // Kalau rules-mu masih "auth != null", web ini perlu login juga.
-  // Kalau read sudah kamu buka publik (.read: true) untuk path ini,
-  // biarkan dua baris di bawah ini kosong ("").
-  const LOGIN_EMAIL = "";
-  const LOGIN_PASSWORD = "";
-  // ============================================================
+                    <!-- Panel frame (tilted perspective using polygon) -->
+                    <!-- Outer frame -->
+                    <polygon class="panel-frame" points="60,80 260,80 250,165 70,165"/>
+                    <!-- Inner panel body -->
+                    <polygon class="panel-body" points="66,85 254,85 245,160 75,160"/>
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const auth = getAuth(app);
+                    <!-- Solar cells - Row 1 -->
+                    <polygon class="panel-cell" points="70,87 115,87 113,100 72,100"/>
+                    <polygon class="panel-cell" points="118,87 160,87 158,100 116,100"/>
+                    <polygon class="panel-cell" points="163,87 205,87 203,100 161,100"/>
+                    <polygon class="panel-cell" points="208,87 250,87 248,100 206,100"/>
 
-  const statusDot = document.getElementById("statusDot");
-  const statusText = document.getElementById("statusText");
-  const lastUpdateEl = document.getElementById("lastUpdate");
+                    <!-- Solar cells - Row 2 -->
+                    <polygon class="panel-cell" points="73,103 114,103 112,118 75,118"/>
+                    <polygon class="panel-cell" points="117,103 157,103 155,118 115,118"/>
+                    <polygon class="panel-cell" points="160,103 200,103 198,118 158,118"/>
+                    <polygon class="panel-cell" points="203,103 243,103 241,118 201,118"/>
 
-  function setStatus(online){
-    statusDot.classList.toggle("online", online);
-    statusDot.classList.toggle("offline", !online);
-    statusText.textContent = online ? "Terhubung" : "Terputus";
-  }
+                    <!-- Solar cells - Row 3 -->
+                    <polygon class="panel-cell" points="76,121 113,121 111,136 78,136"/>
+                    <polygon class="panel-cell" points="116,121 153,121 151,136 114,136"/>
+                    <polygon class="panel-cell" points="156,121 196,121 194,136 154,136"/>
+                    <polygon class="panel-cell" points="199,121 239,121 237,136 197,136"/>
 
-  // ---------- grafik riwayat daya ----------
-  const ctx = document.getElementById("powerChart").getContext("2d");
-  const history = { labels: [], data: [] };
-  const MAX_POINTS = 30;
+                    <!-- Solar cells - Row 4 -->
+                    <polygon class="panel-cell" points="79,139 112,139 110,154 81,154"/>
+                    <polygon class="panel-cell" points="115,139 150,139 148,154 113,154"/>
+                    <polygon class="panel-cell" points="153,139 192,139 190,154 151,154"/>
+                    <polygon class="panel-cell" points="195,139 236,139 234,154 193,154"/>
 
-  function drawChart(){
-    const w = ctx.canvas.width = ctx.canvas.clientWidth * 2;
-    const h = ctx.canvas.height = ctx.canvas.clientHeight * 2;
-    ctx.clearRect(0,0,w,h);
-    if(history.data.length < 2) return;
+                    <!-- Shine / glare effect -->
+                    <polygon class="panel-shine" points="66,85 160,85 155,115 72,115"/>
 
-    const max = Math.max(...history.data, 1) * 1.15;
-    const min = Math.min(...history.data) * 0.9;
-    const stepX = w / (MAX_POINTS - 1);
+                    <!-- Frame bottom thickness (3D effect) -->
+                    <polygon class="panel-frame-dark" points="70,165 260,165 258,170 72,170"/>
+                </svg>
 
-    ctx.beginPath();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "#35D68A";
-    ctx.lineJoin = "round";
-    history.data.forEach((val, i) => {
-      const x = i * stepX;
-      const y = h - ((val - min) / (max - min || 1)) * (h - 20) - 10;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+                <div class="viewer-badge">
+                    <div class="live-chip t-label" style="font-size: 11px;">
+                        <span class="dot pulse-dot"></span>
+                        <span>Solar Panel</span>
+                    </div>
+                </div>
+                <span class="viewer-label t-label">IoT Monitoring System — ESP32</span>
+            </div>
 
-    // area fill
-    ctx.lineTo((history.data.length - 1) * stepX, h);
-    ctx.lineTo(0, h);
-    ctx.closePath();
-    const grad = ctx.createLinearGradient(0,0,0,h);
-    grad.addColorStop(0, "rgba(53,214,138,0.25)");
-    grad.addColorStop(1, "rgba(53,214,138,0)");
-    ctx.fillStyle = grad;
-    ctx.fill();
-  }
+            <div class="summary-card card anim-in anim-d2">
+                <div>
+                    <h2 class="t-headline">System Summary</h2>
+                    <div class="summary-rows">
+                        <div class="summary-row">
+                            <span class="label t-body">Status</span>
+                            <div class="val">
+                                <span class="dot-online pulse-dot"></span>
+                                <span class="text-online t-label-md">Online</span>
+                            </div>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label t-body">Network</span>
+                            <span class="text-muted t-label-md">Connected</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label t-body">ESP32 IP</span>
+                            <div class="val">
+                                <span class="material-symbols-outlined" style="color: var(--color-primary); font-size: 18px;">router</span>
+                                <span class="text-muted t-label-md" id="espIp">192.168.1.23</span>
+                            </div>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label t-body">Last Update</span>
+                            <div class="val">
+                                <span class="material-symbols-outlined" style="color: var(--color-on-surface-variant); font-size: 18px;">schedule</span>
+                                <span class="text-muted t-label-md" id="lastUpdate">Just now</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-diag t-label" id="btnDiag">
+                    <span class="material-symbols-outlined">refresh</span>
+                    Refresh Data
+                </button>
+            </div>
+        </section>
 
-  // ---------- gauge ----------
-  const gaugeArc = document.getElementById("gaugeArc");
-  const gaugePct = document.getElementById("gaugePct");
-  const ARC_LENGTH = 235.6;
-  const GAUGE_MAX = 5000; // watt, sesuaikan kapasitas beban kamu
+        <!-- Metrics -->
+        <section class="metrics-grid">
+            <div class="metric-card card anim-in anim-d1">
+                <div class="metric-header">
+                    <span class="metric-label t-label">Voltage</span>
+                    <div class="metric-icon"><span class="material-symbols-outlined">bolt</span></div>
+                </div>
+                <div class="metric-value t-stats" id="voltageValue">--<span class="unit">V</span></div>
+                <div class="metric-status">
+                    <span class="dot-online" style="width:7px;height:7px;"></span>
+                    <span class="t-label" style="color:var(--color-tertiary);">Stable</span>
+                </div>
+            </div>
 
-  function updateGauge(daya){
-    const pct = Math.min(daya / GAUGE_MAX, 1);
-    gaugeArc.setAttribute("stroke-dashoffset", ARC_LENGTH * (1 - pct));
-    gaugeArc.style.stroke = pct > 0.85 ? "#FF5C5C" : pct > 0.6 ? "#F2B705" : "#35D68A";
-    gaugePct.textContent = Math.round(pct * 100) + "%";
-  }
+            <div class="metric-card card anim-in anim-d2">
+                <div class="metric-header">
+                    <span class="metric-label t-label">Current</span>
+                    <div class="metric-icon"><span class="material-symbols-outlined">electric_meter</span></div>
+                </div>
+                <div class="metric-value t-stats" id="currentValue">--<span class="unit">A</span></div>
+                <div class="metric-status">
+                    <span class="dot-online" style="width:7px;height:7px;"></span>
+                    <span class="t-label" style="color:var(--color-tertiary);">Normal</span>
+                </div>
+            </div>
 
-  // ---------- render data dari Firebase ----------
-  function renderData(data){
-    if(!data) return;
-    document.getElementById("valVolt").textContent = Number(data.tegangan).toFixed(1);
-    document.getElementById("valArus").textContent = Number(data.arus).toFixed(2);
-    document.getElementById("valDaya").textContent = Number(data.daya).toFixed(1);
+            <div class="metric-card card power-card anim-in anim-d3">
+                <div class="metric-header">
+                    <span class="metric-label t-label">Total Power</span>
+                    <div class="metric-icon"><span class="material-symbols-outlined">offline_bolt</span></div>
+                </div>
+                <div class="metric-value t-stats" id="powerValue">--<span class="unit">W</span></div>
+                <div class="metric-status">
+                    <span class="material-symbols-outlined">trending_up</span>
+                    <span class="t-label">Optimal Yield</span>
+                </div>
+            </div>
+        </section>
 
-    document.getElementById("subVolt").textContent = "Nominal 220V";
-    document.getElementById("subArus").textContent = "Beban aktif";
-    document.getElementById("subDaya").textContent = "Real-time";
+        <!-- Energy Flow -->
+        <section class="flow-section card anim-in anim-d3">
+            <h3 class="t-headline">System Architecture &amp; Flow</h3>
+            <div class="flow-diagram">
+                <div class="flow-node">
+                    <div class="flow-icon sun-icon">☀️</div>
+                    <span class="flow-node-label t-label">Sun</span>
+                </div>
+                <div class="flow-connector-v gold"></div>
+                <div class="flow-connector-h">
+                    <svg preserveAspectRatio="none"><line class="marching-ants" x1="0" y1="4" x2="100%" y2="4" stroke="var(--color-primary-soft)" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="flow-node">
+                    <div class="flow-icon panel-icon"><span class="material-symbols-outlined">solar_power</span></div>
+                    <span class="flow-node-label t-label">Panel</span>
+                </div>
+                <div class="flow-connector-v gold"></div>
+                <div class="flow-connector-h">
+                    <svg preserveAspectRatio="none"><line class="marching-ants" x1="0" y1="4" x2="100%" y2="4" stroke="var(--color-primary-soft)" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="flow-node">
+                    <div class="flow-icon energy-icon"><span class="material-symbols-outlined">battery_charging_full</span></div>
+                    <span class="flow-node-label t-label">Storage</span>
+                </div>
+                <div class="flow-connector-v green"></div>
+                <div class="flow-connector-h">
+                    <svg preserveAspectRatio="none"><line class="marching-ants" x1="0" y1="4" x2="100%" y2="4" stroke="var(--color-tertiary-soft)" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="flow-node">
+                    <div class="flow-icon monitor-icon"><span class="material-symbols-outlined">query_stats</span></div>
+                    <span class="flow-node-label hl t-label">Monitor</span>
+                </div>
+            </div>
+        </section>
 
-    history.data.push(Number(data.daya));
-    if(history.data.length > MAX_POINTS) history.data.shift();
-    drawChart();
-    updateGauge(Number(data.daya));
+        <!-- Telemetry Chart -->
+        <section class="chart-section card anim-in anim-d4">
+            <div class="chart-header">
+                <div>
+                    <h3 class="t-headline">Real-time Telemetry</h3>
+                    <p class="t-body" style="color: var(--color-on-surface-variant); font-size: 13px; margin-top: 2px;">
+                        Live sensor history stream — <span id="chartLiveValue" style="color: var(--color-primary); font-weight: 600;">--</span>
+                    </p>
+                </div>
+                <div class="chart-tabs">
+                    <button class="chart-tab active t-label" data-metric="power">W (Power)</button>
+                    <button class="chart-tab t-label" data-metric="voltage">V (Voltage)</button>
+                    <button class="chart-tab t-label" data-metric="current">A (Current)</button>
+                </div>
+            </div>
+            <div class="chart-area" id="chartContainer">
+                <svg id="telemetrySvg" style="width: 100%; height: 100%; min-height: 240px;" preserveAspectRatio="none" viewBox="0 0 800 240">
+                    <defs>
+                        <linearGradient id="dynamicAreaFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.35"/>
+                            <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.02"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Grid Lines & Y-labels -->
+                    <g id="chartGridGroup"></g>
+                    <!-- Area & Line Path -->
+                    <path id="chartAreaPath" fill="url(#dynamicAreaFill)" d=""></path>
+                    <path id="chartLinePath" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d=""></path>
+                    <!-- Points -->
+                    <g id="chartPointsGroup"></g>
+                    <!-- X-Axis Labels -->
+                    <g id="chartXLabelsGroup"></g>
+                </svg>
+            </div>
+        </section>
 
-    lastUpdateEl.textContent = new Date().toLocaleTimeString("id-ID");
-    setStatus(true);
-  }
+    </main>
 
-  function listenToDevice(){
-    const dataRef = ref(db, "/devices/esp32_01");
-    onValue(dataRef, (snapshot) => {
-      renderData(snapshot.val());
-    }, (error) => {
-      console.error("Gagal membaca database:", error);
-      setStatus(false);
-      statusText.textContent = "Error: " + error.code;
-    });
-  }
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer t-label">
+        <div class="footer-status">
+            <span class="dot-online pulse-dot" style="width:7px;height:7px;"></span>
+            System Operational
+        </div>
+        <div class="footer-right">
+            © 2026 VEDC
+        </div>
+    </footer>
 
-  // Kalau rules butuh login, sign in dulu. Kalau read sudah publik, langsung listen.
-  if (LOGIN_EMAIL) {
-    signInWithEmailAndPassword(auth, LOGIN_EMAIL, LOGIN_PASSWORD)
-      .then(() => listenToDevice())
-      .catch((error) => {
-        console.error("Login gagal:", error);
-        statusText.textContent = "Login gagal";
-      });
-  } else {
-    listenToDevice();
-  }
+    <!-- ===== THEME TOGGLE ===== -->
+    <script>
+        (function() {
+            const toggle = document.getElementById('themeToggle');
+            const icon = document.getElementById('themeIcon');
+            const html = document.documentElement;
 
-  window.addEventListener("resize", drawChart);
-</script>
+            const saved = localStorage.getItem('solarpulse-theme');
+            if (saved === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                icon.textContent = 'light_mode';
+            }
+
+            toggle.addEventListener('click', function() {
+                const current = html.getAttribute('data-theme');
+                if (current === 'dark') {
+                    html.setAttribute('data-theme', 'light');
+                    icon.textContent = 'dark_mode';
+                    localStorage.setItem('solarpulse-theme', 'light');
+                } else {
+                    html.setAttribute('data-theme', 'dark');
+                    icon.textContent = 'light_mode';
+                    localStorage.setItem('solarpulse-theme', 'dark');
+                }
+            });
+        })();
+    </script>
+
+    <!-- ===== FIREBASE REALTIME DATABASE & LIVE TELEMETRY ENGINE ===== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+
+        // Firebase Configuration (monitoring-panel-surya-vedc)
+        const firebaseConfig = {
+            apiKey: "YOUR API KEY",
+            authDomain: "monitoring-panel-surya-vedc.firebaseapp.com",
+            databaseURL: "YOUR DATABAES URL",
+            projectId: "monitoring-panel-surya-vedc",
+            storageBucket: "STORAGE BUCKET",
+            messagingSenderId: "791391921384",
+            appId: "YOUR APP ID",
+            measurementId: "G-DTD491EKM3"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // ---- DOM Elements ----
+        const voltageEl    = document.getElementById('voltageValue');
+        const currentEl    = document.getElementById('currentValue');
+        const powerEl      = document.getElementById('powerValue');
+        const espIpEl      = document.getElementById('espIp');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+        const footerStatus = document.querySelector('.footer-status');
+        const chartLiveVal = document.getElementById('chartLiveValue');
+
+        // ---- Telemetry History Buffer (Max 20 points) ----
+        const MAX_POINTS = 20;
+        let telemetryHistory = [];
+        let activeMetric = 'power'; // 'power' | 'voltage' | 'current'
+
+        // Pre-fill initial timeline if empty
+        const initialNow = Date.now();
+        for (let i = 8; i > 0; i--) {
+            telemetryHistory.push({
+                time: new Date(initialNow - i * 4000),
+                voltage: 0,
+                current: 0,
+                power: 0
+            });
+        }
+
+        // ---- Helper: format timestamp to readable time ----
+        function formatTimestamp(ts) {
+            if (!ts) return 'No data';
+            const d = typeof ts === 'number' ? new Date(ts) : new Date();
+            const now = new Date();
+            const diffSec = Math.floor((now - d) / 1000);
+
+            if (diffSec < 5) return 'Just now';
+            if (diffSec < 60) return diffSec + 's ago';
+            if (diffSec < 3600) return Math.floor(diffSec / 60) + 'm ago';
+
+            return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function formatClock(date) {
+            return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function getVoltageStatus(v) {
+            if (v >= 11 && v <= 14) return { text: 'Stable', ok: true };
+            if (v > 0) return { text: 'Active', ok: true };
+            return { text: 'No Data', ok: false };
+        }
+
+        function getCurrentStatus(c) {
+            if (c > 0) return { text: 'Normal', ok: true };
+            return { text: 'No Load', ok: false };
+        }
+
+        function getPowerStatus(p) {
+            if (p > 10) return { text: 'Optimal Yield', ok: true };
+            if (p > 0) return { text: 'Generating', ok: true };
+            return { text: 'Standby', ok: false };
+        }
+
+        function flashUpdate(el) {
+            el.style.transition = 'opacity 0.15s';
+            el.style.opacity = '0.4';
+            setTimeout(() => { el.style.opacity = '1'; }, 150);
+        }
+
+        // ---- Live SVG Chart Drawing Function ----
+        function renderLiveChart() {
+            const svgWidth = 800;
+            const svgHeight = 240;
+            const padTop = 30;
+            const padBottom = 40;
+            const padLeft = 45;
+            const padRight = 30;
+
+            const drawWidth = svgWidth - padLeft - padRight;
+            const drawHeight = svgHeight - padTop - padBottom;
+
+            // Extract values for active metric
+            const values = telemetryHistory.map(d => d[activeMetric] || 0);
+            let maxVal = Math.max(...values, 1);
+            let minVal = 0;
+
+            // Give a 15% top margin for aesthetics
+            maxVal = maxVal * 1.15;
+
+            // Update live value badge
+            const latestVal = values[values.length - 1] || 0;
+            let unit = 'W';
+            if (activeMetric === 'voltage') unit = 'V';
+            if (activeMetric === 'current') unit = 'A';
+            if (chartLiveVal) {
+                chartLiveVal.textContent = latestVal.toFixed(2) + ' ' + unit + ' (' + activeMetric.toUpperCase() + ')';
+            }
+
+            // Generate Grid Lines & Y-Labels
+            const gridGroup = document.getElementById('chartGridGroup');
+            if (gridGroup) {
+                let gridHtml = '';
+                const gridSteps = 4;
+                for (let i = 0; i <= gridSteps; i++) {
+                    const y = padTop + (drawHeight / gridSteps) * i;
+                    const val = maxVal - (maxVal / gridSteps) * i;
+                    gridHtml += `
+                        <line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="var(--chart-grid)" stroke-dasharray="${i === gridSteps ? '0' : '4,4'}"/>
+                        <text x="${padLeft - 8}" y="${y + 4}" fill="var(--color-on-surface-variant)" opacity="0.6" font-size="10" text-anchor="end" font-family="'Hanken Grotesk', sans-serif">${val.toFixed(1)}${unit}</text>
+                    `;
+                }
+                gridGroup.innerHTML = gridHtml;
+            }
+
+            // Calculate point coordinates
+            const count = telemetryHistory.length;
+            const points = telemetryHistory.map((item, idx) => {
+                const x = padLeft + (idx / (count - 1 || 1)) * drawWidth;
+                const normalized = (item[activeMetric] - minVal) / (maxVal - minVal || 1);
+                const y = padTop + drawHeight - (normalized * drawHeight);
+                return { x, y, item };
+            });
+
+            if (points.length === 0) return;
+
+            // Build smooth Bezier path
+            let pathD = `M ${points[0].x} ${points[0].y}`;
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i];
+                const p1 = points[i + 1];
+                const midX = (p0.x + p1.x) / 2;
+                pathD += ` C ${midX} ${p0.y}, ${midX} ${p1.y}, ${p1.x} ${p1.y}`;
+            }
+
+            // Area path (closed at the bottom)
+            const areaPathD = `${pathD} L ${points[points.length - 1].x} ${padTop + drawHeight} L ${points[0].x} ${padTop + drawHeight} Z`;
+
+            const areaPathEl = document.getElementById('chartAreaPath');
+            const linePathEl = document.getElementById('chartLinePath');
+            if (areaPathEl) areaPathEl.setAttribute('d', areaPathD);
+            if (linePathEl) linePathEl.setAttribute('d', pathD);
+
+            // Render circles for points
+            const pointsGroup = document.getElementById('chartPointsGroup');
+            if (pointsGroup) {
+                let pointsHtml = '';
+                points.forEach((pt, idx) => {
+                    const isLast = idx === points.length - 1;
+                    if (isLast) {
+                        pointsHtml += `
+                            <circle cx="${pt.x}" cy="${pt.y}" r="7" fill="var(--color-primary)" opacity="0.3" class="pulse-dot"/>
+                            <circle cx="${pt.x}" cy="${pt.y}" r="4" fill="var(--color-primary)"/>
+                        `;
+                    } else if (idx % 3 === 0) {
+                        pointsHtml += `<circle cx="${pt.x}" cy="${pt.y}" r="2.5" fill="var(--color-primary)" opacity="0.5"/>`;
+                    }
+                });
+                pointsGroup.innerHTML = pointsHtml;
+            }
+
+            // Render X-axis Time Labels
+            const xLabelsGroup = document.getElementById('chartXLabelsGroup');
+            if (xLabelsGroup) {
+                let labelsHtml = '';
+                const step = Math.max(1, Math.floor(points.length / 5));
+                points.forEach((pt, idx) => {
+                    if (idx % step === 0 || idx === points.length - 1) {
+                        labelsHtml += `
+                            <text x="${pt.x}" y="${svgHeight - 12}" fill="var(--color-on-surface-variant)" opacity="0.6" font-size="10" text-anchor="middle" font-family="'Hanken Grotesk', sans-serif">
+                                ${formatClock(pt.item.time)}
+                            </text>
+                        `;
+                    }
+                });
+                xLabelsGroup.innerHTML = labelsHtml;
+            }
+        }
+
+        // ---- Tab Switching (Power, Voltage, Current) ----
+        const chartTabs = document.querySelectorAll('.chart-tab');
+        chartTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                chartTabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                activeMetric = this.getAttribute('data-metric') || 'power';
+                renderLiveChart();
+            });
+        });
+
+        // Initial render
+        renderLiveChart();
+
+        // ---- Listen to /plts/current in Real-Time from Firebase ----
+        const pltsRef = ref(db, '/plts/current');
+
+        onValue(pltsRef, function(snapshot) {
+            const data = snapshot.val();
+            if (!data) {
+                console.log('No data at /plts/current');
+                return;
+            }
+
+            console.log('Firebase telemetry stream:', data);
+
+            const v = data.voltage !== undefined ? parseFloat(data.voltage) : 0;
+            const c = data.current !== undefined ? parseFloat(data.current) : 0;
+            const p = data.power !== undefined ? parseFloat(data.power) : (v * c);
+            const ip = data.ip || 'Connected';
+            const now = new Date();
+
+            // 1. Update Metric Cards
+            if (voltageEl) {
+                voltageEl.innerHTML = v.toFixed(2) + '<span class="unit">V</span>';
+                flashUpdate(voltageEl);
+                const vs = getVoltageStatus(v);
+                const vStatus = voltageEl.parentElement.querySelector('.metric-status');
+                if (vStatus) vStatus.querySelector('.t-label').textContent = vs.text;
+            }
+
+            if (currentEl) {
+                currentEl.innerHTML = c.toFixed(3) + '<span class="unit">A</span>';
+                flashUpdate(currentEl);
+                const cs = getCurrentStatus(c);
+                const cStatus = currentEl.parentElement.querySelector('.metric-status');
+                if (cStatus) cStatus.querySelector('.t-label').textContent = cs.text;
+            }
+
+            if (powerEl) {
+                powerEl.innerHTML = p.toFixed(2) + '<span class="unit">W</span>';
+                flashUpdate(powerEl);
+                const ps = getPowerStatus(p);
+                const pStatus = powerEl.parentElement.querySelector('.metric-status');
+                if (pStatus) pStatus.querySelector('.t-label').textContent = ps.text;
+            }
+
+            if (espIpEl) espIpEl.textContent = ip;
+            if (lastUpdateEl) lastUpdateEl.textContent = formatTimestamp(data.timestamp || now.getTime());
+
+            // 2. Append to Telemetry Buffer & Redraw Chart Dynamically
+            telemetryHistory.push({
+                time: now,
+                voltage: v,
+                current: c,
+                power: p
+            });
+
+            if (telemetryHistory.length > MAX_POINTS) {
+                telemetryHistory.shift();
+            }
+
+            renderLiveChart();
+
+        }, function(error) {
+            console.error('Firebase read error:', error);
+            if (footerStatus) {
+                footerStatus.innerHTML = '<span class="dot-online" style="width:7px;height:7px;background:var(--color-error);"></span> Connection Error';
+            }
+        });
+
+        // ---- Diagnostics / Refresh button ----
+        const btnDiag = document.getElementById('btnDiag');
+        if (btnDiag) {
+            btnDiag.addEventListener('click', function() {
+                const icon = btnDiag.querySelector('.material-symbols-outlined');
+                if (icon) icon.style.transform = 'rotate(360deg)';
+                renderLiveChart();
+                setTimeout(() => {
+                    if (icon) icon.style.transform = '';
+                }, 600);
+            });
+        }
+    </script>
 
 </body>
 </html>
